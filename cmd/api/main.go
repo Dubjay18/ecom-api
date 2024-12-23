@@ -3,19 +3,21 @@ package main
 
 import (
 	"context"
-	"github.com/Dubjay18/ecom-api/internal/config"
-	"github.com/Dubjay18/ecom-api/internal/container"
-	"github.com/Dubjay18/ecom-api/internal/handler"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Dubjay18/ecom-api/internal/config"
+	"github.com/Dubjay18/ecom-api/internal/container"
+	"github.com/Dubjay18/ecom-api/internal/handler"
+	"github.com/Dubjay18/ecom-api/internal/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title           E-commerce API
@@ -65,6 +67,9 @@ func main() {
 
 	// API routes group
 	api := router.Group("/api/v1")
+
+	// Add JWT middleware to protected routes
+	api.Use(middleware.AuthMiddleware(cfg.JWT.SecretKey))
 
 	// Initialize handlers
 	handler.NewUserHandler(api, c.UserService)
