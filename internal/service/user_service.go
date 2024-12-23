@@ -1,11 +1,29 @@
 package service
 
-import "github.com/Dubjay18/ecom-api/internal/repository"
+import (
+	"context"
 
-type UserService struct {
-	repo *repository.UserRepository
+	"github.com/Dubjay18/ecom-api/internal/domain"
+	"github.com/Dubjay18/ecom-api/internal/repository"
+)
+
+type UserService interface {
+	Register(ctx context.Context, req domain.RegisterRequest) (*domain.User, error)
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+type userService struct {
+	repo repository.UserRepository
+}
+
+func (s *userService) Register(ctx context.Context, req domain.RegisterRequest) (*domain.User, error) {
+	user := &domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	return s.repo.Create(ctx, user)
+}
+
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{repo: repo}
 }

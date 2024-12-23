@@ -12,12 +12,12 @@ type Container struct {
 	DB     *database.Database
 
 	// Repositories
-	UserRepository    *repository.UserRepository
+	UserRepository    repository.UserRepository
 	ProductRepository *repository.ProductRepository
 	OrderRepository   *repository.OrderRepository
 
 	// Services
-	UserService    *service.UserService
+	UserService    service.UserService
 	ProductService *service.ProductService
 	OrderService   *service.OrderService
 }

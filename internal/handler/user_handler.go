@@ -7,9 +7,9 @@ import (
 
 type UserHandler struct {
 	r *gin.RouterGroup
-	s *service.UserService
+	s service.UserService
 }
 
-func NewUserHandler(r *gin.RouterGroup, s *service.UserService) *UserHandler {
+func NewUserHandler(r *gin.RouterGroup, s service.UserService) *UserHandler {
 	return &UserHandler{r: r, s: s}
 }
