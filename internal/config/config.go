@@ -27,12 +27,15 @@ type ServerConfig struct {
 }
 
 type DBConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+	Host         string
+	Port         string
+	User         string
+	Password     string
+	DBName       string
+	SSLMode      string
+	MaxIdleConns int
+	MaxOpenConns int
+	MaxLifetime  time.Duration
 }
 
 type JWTConfig struct {
