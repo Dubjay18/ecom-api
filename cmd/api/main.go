@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/Dubjay18/ecom-api/docs" // This is for swagger
 	"github.com/Dubjay18/ecom-api/internal/config"
 	"github.com/Dubjay18/ecom-api/internal/container"
 	"github.com/Dubjay18/ecom-api/internal/handler"
