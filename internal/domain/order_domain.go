@@ -49,3 +49,14 @@ type Address struct {
 	PostalCode string `json:"postal_code" gorm:"size:20;not null"`
 	IsDefault  bool   `json:"is_default" gorm:"default:false"`
 }
+
+type CreateOrderRequest struct {
+	Items         []CreateOrderItem `json:"items" binding:"required"`
+	ShippingAddr  Address           `json:"shipping_address" binding:"required"`
+	PaymentMethod string            `json:"payment_method" binding:"required"`
+}
+
+type CreateOrderItem struct {
+	ProductID uint `json:"product_id" binding:"required"`
+	Quantity  int  `json:"quantity" binding:"required"`
+}

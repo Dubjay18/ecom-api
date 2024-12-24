@@ -15,7 +15,7 @@ type Container struct {
 	// Repositories
 	UserRepository    repository.UserRepository
 	ProductRepository repository.ProductRepository
-	OrderRepository   *repository.OrderRepository
+	OrderRepository   repository.OrderRepository
 
 	// Services
 	UserService    service.UserService
@@ -40,7 +40,7 @@ func NewContainer(cfg *config.Config) (*Container, error) {
 	// Initialize services
 	userService := service.NewUserService(userRepo, jwtService)
 	productService := service.NewProductService(productRepo)
-	orderService := service.NewOrderService(orderRepo)
+	orderService := service.NewOrderService(orderRepo, productRepo)
 
 	return &Container{
 		Config: cfg,
