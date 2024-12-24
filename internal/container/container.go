@@ -5,6 +5,7 @@ import (
 	"github.com/Dubjay18/ecom-api/internal/infrastructure/database"
 	"github.com/Dubjay18/ecom-api/internal/repository"
 	"github.com/Dubjay18/ecom-api/internal/service"
+	"github.com/Dubjay18/ecom-api/pkg/jwt"
 )
 
 type Container struct {
@@ -13,7 +14,7 @@ type Container struct {
 
 	// Repositories
 	UserRepository    repository.UserRepository
-	ProductRepository *repository.ProductRepository
+	ProductRepository repository.ProductRepository
 	OrderRepository   *repository.OrderRepository
 
 	// Services
@@ -29,13 +30,15 @@ func NewContainer(cfg *config.Config) (*Container, error) {
 		return nil, err
 	}
 
+	// jwt service
+	jwtService := jwt.NewJWTService(cfg.JWT.SecretKey, cfg.JWT.AccessTokenExpiry)
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db.DB)
 	productRepo := repository.NewProductRepository(db.DB)
 	orderRepo := repository.NewOrderRepository(db.DB)
 
 	// Initialize services
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, jwtService)
 	productService := service.NewProductService(productRepo)
 	orderService := service.NewOrderService(orderRepo)
 

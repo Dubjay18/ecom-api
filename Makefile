@@ -22,13 +22,38 @@ lint:
 	golangci-lint run
 
 dev:
-	air -c .air.toml
+		@if command -v air > /dev/null; then \
+	    air; \
+	    echo "Watching...";\
+	else \
+	    read -p "Go's 'air' is not installed on your machine. Do you want to install it? [Y/n] " choice; \
+	    if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
+	        go install github.com/cosmtrek/air@latest; \
+	        air; \
+	        echo "Watching...";\
+	    else \
+	        echo "You chose not to install air. Exiting..."; \
+	        exit 1; \
+	    fi; \
+	fi
 
 migrate-up:
-	migrate -path migrations -database "postgresql://user:password@localhost:5432/dbname?sslmode=disable" up
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && \
+		migrate -path migrations -database "postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=$$DB_SSL_MODE" up; \
+	else \
+		echo "Error: .env file not found"; \
+		exit 1; \
+	fi
 
 migrate-down:
-	migrate -path migrations -database "postgresql://user:password@localhost:5432/dbname?sslmode=disable" down
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^$$' | xargs) && \
+		migrate -path migrations -database "postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=$$DB_SSL_MODE" down; \
+	else \
+		echo "Error: .env file not found"; \
+		exit 1; \
+	fi
 
 docker-up:
 	docker-compose up -d

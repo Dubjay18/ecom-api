@@ -37,6 +37,9 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
+	log.Printf("config loaded: %+v\n", cfg)
+	log.Printf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.DBName, cfg.DB.SSLMode)
 	// Set Gin mode
 	if cfg.Server.Mode == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -71,6 +74,9 @@ func main() {
 
 	// Add JWT middleware to protected routes
 	api.Use(middleware.AuthMiddleware(cfg.JWT.SecretKey))
+
+	loggerInit := config.InitLog()
+	api.Use(middleware.LoggerMiddleware(loggerInit))
 
 	// Initialize handlers
 	handler.NewUserHandler(api, c.UserService)

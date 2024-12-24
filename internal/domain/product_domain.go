@@ -19,3 +19,21 @@ type Category struct {
 	Description string    `json:"description" gorm:"type:text"`
 	Products    []Product `json:"products,omitempty" gorm:"foreignKey:CategoryID"`
 }
+
+type ProductFilter struct {
+	Name string
+
+	MinPrice float64
+
+	MaxPrice float64
+}
+
+type CreateProductRequest struct {
+	Name        string  `json:"name" binding:"required"`
+	Price       float64 `json:"price" binding:"required"`
+	Description string  `json:"description"`
+	SKU         string  `json:"sku" binding:"required"`
+	Stock       int     `json:"stock" binding:"required"`
+	CategoryID  uint    `json:"category_id" binding:"required"`
+	ImageURL    string  `json:"image_url"`
+}

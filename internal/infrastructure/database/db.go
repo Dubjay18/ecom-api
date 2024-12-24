@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Dubjay18/ecom-api/internal/config"
-	"github.com/Dubjay18/ecom-api/internal/domain"
+	// "github.com/Dubjay18/ecom-api/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -35,20 +35,20 @@ func NewPostgresDB(cfg *config.DBConfig) (*Database, error) {
 	sqlDB.SetConnMaxLifetime(cfg.MaxLifetime)
 
 	// Run migrations
-	if err := runMigrations(db); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
-	}
+	// if err := runMigrations(db); err != nil {
+	// 	return nil, fmt.Errorf("failed to run migrations: %w", err)
+	// }
 
 	return &Database{db}, nil
 }
 
-func runMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(
-		&domain.User{},
-		&domain.Product{},
-		&domain.Category{},
-		&domain.Order{},
-		&domain.OrderItem{},
-		&domain.Address{},
-	)
-}
+// func runMigrations(db *gorm.DB) error {
+// 	return db.AutoMigrate(
+// 		&domain.User{},
+// 		&domain.Product{},
+// 		&domain.Category{},
+// 		&domain.Address{},
+// 		&domain.Order{},
+// 		&domain.OrderItem{},
+// 	)
+// }
