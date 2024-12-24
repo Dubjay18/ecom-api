@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/Dubjay18/ecom-api/internal/domain"
+	"github.com/Dubjay18/ecom-api/internal/middleware"
 	"github.com/Dubjay18/ecom-api/internal/service"
 	"github.com/Dubjay18/ecom-api/pkg/common/response"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"strconv"
 )
 
 type ProductHandler struct {
@@ -19,12 +21,12 @@ func NewProductHandler(r *gin.RouterGroup, s *service.ProductService) {
 		r: r,
 		s: s,
 	}
-
-	r.GET("/products", handler.ListProducts)
-	r.POST("/products", handler.CreateProduct)
-	r.GET("/products/:id", handler.GetProduct)
-	r.PUT("/products/:id", handler.UpdateProduct)
-	r.DELETE("/products/:id", handler.DeleteProduct)
+	ar := r.Use(middleware.AdminMiddleware())
+	ar.GET("/products", handler.ListProducts)
+	ar.POST("/products", handler.CreateProduct)
+	ar.GET("/products/:id", handler.GetProduct)
+	ar.PUT("/products/:id", handler.UpdateProduct)
+	ar.DELETE("/products/:id", handler.DeleteProduct)
 }
 
 // Create Product godoc
