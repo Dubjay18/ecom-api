@@ -1,5 +1,5 @@
 .PHONY: all build run test clean swagger lint dev
-
+include $(PWD)/.env
 all: clean swagger build
 
 build:
@@ -38,25 +38,16 @@ dev:
 	fi
 
 migrate-up:
-	@if [ -f .env ]; then \
-		export $$(cat .env | grep -v '^#' | grep -v '^$$' | xargs) && \
-		migrate -path migrations -database "postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=$$DB_SSL_MODE" up; \
-	else \
-		echo "Error: .env file not found"; \
-		exit 1; \
-	fi
+	migrate -path migrations -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL_MODE)" up
 
 migrate-down:
-	@if [ -f .env ]; then \
-		export $$(cat .env | grep -v '^$$' | xargs) && \
-		migrate -path migrations -database "postgresql://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=$$DB_SSL_MODE" down; \
-	else \
-		echo "Error: .env file not found"; \
-		exit 1; \
-	fi
+	migrate -path migrations -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL_MODE)" down
+	
 
 docker-up:
 	docker-compose up -d
 
 docker-down:
 	docker-compose down
+dummy:
+	
