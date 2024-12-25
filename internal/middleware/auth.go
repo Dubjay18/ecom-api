@@ -3,16 +3,17 @@ package middleware
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
-	"github.com/Dubjay18/ecom-api/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthMiddleware(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Println("AuthMiddleware")
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -44,8 +45,24 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 		// Extract claims
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			// Add user ID and role to context
-			c.Set("userID", uint(claims["user_id"].(float64)))
-			c.Set("userRole", domain.UserRole(claims["role"].(string)))
+			if userID, ok := claims["user_id"]; ok && userID != nil {
+				c.Set("userID", uint(userID.(float64)))
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id in token"})
+				return
+			}
+			if isAdmin, ok := claims["is_admin"]; ok && isAdmin != nil {
+				c.Set("isAdmin", isAdmin.(bool))
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid is_admin in token"})
+				return
+			}
+			if email, ok := claims["email"]; ok && email != nil {
+				c.Set("email", email.(string))
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid email in token"})
+				return
+			}
 			c.Next()
 		} else {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})

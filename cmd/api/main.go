@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -37,7 +38,6 @@ func main() {
 		log.Fatal("cannot load config:", err)
 	}
 
-	log.Printf("config loaded: %+v\n", cfg)
 	log.Printf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.DBName, cfg.DB.SSLMode)
 	// Set Gin mode
@@ -72,14 +72,11 @@ func main() {
 	// API routes group
 	api := router.Group("/api/v1")
 
-	// Add JWT middleware to protected routes
-	api.Use(middleware.AuthMiddleware(cfg.JWT.SecretKey))
-
 	loggerInit := config.InitLog()
 	api.Use(middleware.LoggerMiddleware(loggerInit))
 
 	// Initialize handlers
-	handler.NewUserHandler(api, c.UserService)
+	handler.NewUserHandler(api, c.UserService, loggerInit, cfg.JWT.SecretKey)
 	handler.NewProductHandler(api, c.ProductService)
 	handler.NewOrderHandler(api, c.OrderService)
 
@@ -130,7 +127,20 @@ func main() {
 	}()
 
 	// Start server
+
 	log.Printf("server is starting on %s\n", cfg.Server.GetServerAddress())
+	fmt.Println(`
+ /$$  / $$            $$                       
+| $$  | $$          | $$                       
+| $$  | $$  /$$$$$$ | $$$$$$$   /$$$$$$        
+| $$$$$$$$|/$$__  $$| $$__  $$ /$$__  $$       
+| $$__  $$| $$$$$$$$| $$  \ $$| $$$$$$$$       
+| $$  | $$| $$_____/| $$  | $$| $$_____/       
+| $$  | $$|  $$$$$$$| $$  | $$|  $$$$$$$       
+|__/  |__/ \_______/|__/  |__/ \_______/      
+
+ WELCOME TO JAY'S SERVER!
+`)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal("cannot start server:", err)
 	}

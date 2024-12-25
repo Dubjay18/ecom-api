@@ -1,24 +1,28 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/Dubjay18/ecom-api/internal/domain"
+	"github.com/Dubjay18/ecom-api/internal/middleware"
 	"github.com/Dubjay18/ecom-api/internal/service"
 	"github.com/Dubjay18/ecom-api/pkg/common"
 	"github.com/Dubjay18/ecom-api/pkg/common/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 type UserHandler struct {
-	r *gin.RouterGroup
-	s service.UserService
+	r      *gin.RouterGroup
+	s      service.UserService
+	logger *logrus.Logger
 }
 
-func NewUserHandler(r *gin.RouterGroup, s service.UserService) {
+func NewUserHandler(r *gin.RouterGroup, s service.UserService, logger *logrus.Logger, jwtSecret string) {
 	handler := &UserHandler{
-		r: r,
-		s: s,
+		r:      r,
+		s:      s,
+		logger: logger,
 	}
 
 	auth := r.Group("/auth")
@@ -28,11 +32,11 @@ func NewUserHandler(r *gin.RouterGroup, s service.UserService) {
 	}
 
 	users := r.Group("/users")
+	users.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		users.GET("/me", handler.GetProfile)
 		// users.PUT("/me", handler.UpdateProfile)
 	}
-
 }
 
 // Register godoc
@@ -49,12 +53,17 @@ func NewUserHandler(r *gin.RouterGroup, s service.UserService) {
 func (h *UserHandler) Register(c *gin.Context) {
 	var req domain.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.RenderBindingErrors(c, err.(validator.ValidationErrors))
+			return
+		}
 		response.Error(c, http.StatusBadRequest, "Invalid input", err.Error())
 		return
 	}
 
 	user, err := h.s.Register(c.Request.Context(), req)
 	if err != nil {
+		h.logger.Error(err)
 		switch err {
 		case &common.ErrEmailExists:
 			response.Error(c, http.StatusConflict, "Registration failed", err.Error())
