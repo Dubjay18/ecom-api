@@ -9,6 +9,7 @@ import (
 	"github.com/Dubjay18/ecom-api/internal/service"
 	"github.com/Dubjay18/ecom-api/pkg/common/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type OrderHandler struct {
@@ -40,11 +41,11 @@ func NewOrderHandler(r *gin.RouterGroup, s *service.OrderService) *OrderHandler 
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	var req domain.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid input", err.Error())
+		response.RenderBindingErrors(c, err.(validator.ValidationErrors))
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID, _ := c.Get("userID")
 	order, err := h.s.PlaceOrder(c.Request.Context(), userID.(uint), &req)
 	if err != nil {
 		response.Error(c, err.Code, "Failed to create order", err.Message)

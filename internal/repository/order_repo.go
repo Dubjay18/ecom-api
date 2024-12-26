@@ -13,6 +13,7 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id uint) (*domain.Order, error)
 	Update(ctx context.Context, order *domain.Order) error
 	List(ctx context.Context, userID uint) ([]domain.Order, error)
+	CreatAddress(ctx context.Context, address *domain.Address) error
 }
 
 type orderRepository struct {
@@ -43,6 +44,10 @@ func (r *orderRepository) List(ctx context.Context, userID uint) ([]domain.Order
 		return nil, err
 	}
 	return orders, nil
+}
+
+func (r *orderRepository) CreatAddress(ctx context.Context, address *domain.Address) error {
+	return r.DB.WithContext(ctx).Create(address).Error
 }
 
 func NewOrderRepository(db *gorm.DB) OrderRepository {

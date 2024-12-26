@@ -23,44 +23,83 @@ func (s *OrderService) PlaceOrder(ctx context.Context, userID uint, req *domain.
 	tx := s.orderRepo.BeginTx(ctx)
 	defer tx.Rollback()
 
-	var total float64
-	for _, item := range req.Items {
-		product, err := s.productRepo.GetByID(ctx, item.ProductID)
-		if err != nil {
-			return nil, common.NewAppError(err, "Failed to get product", common.ErrInternalServer.Code)
-		}
-		if product.Stock < item.Quantity {
-			return nil, common.NewAppError(nil, "Insufficient stock", http.StatusBadRequest)
-		}
-		total += product.Price * float64(item.Quantity)
+	// Fetch all product details in a single query
+	productIDs := make([]uint, len(req.Items))
+	for i, item := range req.Items {
+		productIDs[i] = item.ProductID
 	}
 
-	order := &domain.Order{
-		UserID:      userID,
-		Status:      domain.StatusPending,
-		TotalAmount: total,
-		Items:       make([]domain.OrderItem, len(req.Items)),
+	products, err := s.productRepo.GetByIDs(ctx, productIDs)
+	if err != nil {
+		return nil, common.NewAppError(err, "Failed to fetch products", common.ErrInternalServer.Code)
 	}
+
+	// Map products for quick lookup
+	productMap := make(map[uint]*domain.Product)
+	for _, product := range products {
+		productMap[product.ID] = &product
+	}
+
+	// Validate stock and calculate total
+	var total float64
+	orderItems := make([]domain.OrderItem, len(req.Items))
 
 	for i, item := range req.Items {
-		p, _ := s.productRepo.GetByID(ctx, item.ProductID)
-		order.Items[i] = domain.OrderItem{
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			Price:     p.Price,
+		product, exists := productMap[item.ProductID]
+		if !exists {
+			return nil, common.NewAppError(nil, "Product not found", http.StatusBadRequest)
 		}
-		p.Stock -= item.Quantity
-		if err := s.productRepo.Update(ctx, p); err != nil {
-			return nil, common.NewAppError(err, "Failed to update product", common.ErrInternalServer.Code)
+		if product.Stock < item.Quantity {
+			return nil, common.NewAppError(nil, "Insufficient stock for product", http.StatusBadRequest)
+		}
+
+		orderItems[i] = domain.OrderItem{
+			Product:  *product,
+			Quantity: item.Quantity,
+			Price:    product.Price * float64(item.Quantity),
+		}
+		total += orderItems[i].Price
+	}
+
+	// Create shipping address
+	shippingAddr := &domain.Address{
+		UserID:     userID,
+		Street:     req.ShippingAddr.Street,
+		City:       req.ShippingAddr.City,
+		State:      req.ShippingAddr.State,
+		Country:    req.ShippingAddr.Country,
+		PostalCode: req.ShippingAddr.PostalCode,
+	}
+	if err := s.orderRepo.CreatAddress(ctx, shippingAddr); err != nil {
+		return nil, common.NewAppError(err, "Failed to create shipping address", common.ErrInternalServer.Code)
+	}
+
+	// Update product stocks
+	for _, item := range req.Items {
+		product := productMap[item.ProductID]
+		product.Stock -= item.Quantity
+		if err := s.productRepo.Update(ctx, product); err != nil {
+			return nil, common.NewAppError(err, "Failed to update product stock", common.ErrInternalServer.Code)
 		}
 	}
 
+	// Create order
+	order := &domain.Order{
+		UserID:            userID,
+		Status:            domain.StatusPending,
+		TotalAmount:       total,
+		Items:             orderItems,
+		ShippingAddressID: shippingAddr.ID,
+	}
 	if err := s.orderRepo.Create(ctx, order); err != nil {
 		return nil, common.NewAppError(err, "Failed to create order", common.ErrInternalServer.Code)
 	}
-	if err := tx.Commit(); err != nil {
+
+	// Commit transaction
+	if err := tx.Commit(); err.Error != nil {
 		return nil, common.NewAppError(err.Error, "Failed to commit transaction", common.ErrInternalServer.Code)
 	}
+
 	return order, nil
 }
 

@@ -13,6 +13,7 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *domain.Product) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
+	GetByIDs(ctx context.Context, ids []uint) ([]domain.Product, error)
 }
 
 type productRepository struct {
@@ -42,7 +43,7 @@ func (p *productRepository) GetBySKU(ctx context.Context, sku string) (*domain.P
 }
 
 func (p *productRepository) Update(ctx context.Context, product *domain.Product) error {
-	return p.DB.WithContext(ctx).Model(product).Updates(product).Error
+	return p.DB.WithContext(ctx).Save(product).Error
 }
 
 func (p *productRepository) Delete(ctx context.Context, id uint) error {
@@ -72,6 +73,14 @@ func (p *productRepository) List(ctx context.Context, filter domain.ProductFilte
 	return products, nil
 }
 
+func (p *productRepository) GetByIDs(ctx context.Context, ids []uint) ([]domain.Product, error) {
+	var products []domain.Product
+	err := p.DB.WithContext(ctx).Where("id IN ?", ids).Find(&products).Error
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
+}
 func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{DB: db}
 }
