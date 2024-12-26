@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/Dubjay18/ecom-api/internal/domain"
 	"github.com/Dubjay18/ecom-api/internal/repository"
@@ -18,8 +19,11 @@ func NewProductService(repo repository.ProductRepository) *ProductService {
 
 // Create creates a new product
 func (s *ProductService) Create(ctx context.Context, product *domain.Product) *common.AppError {
-
-	err := s.repo.Create(ctx, product)
+	existingProduct, err := s.repo.GetBySKU(ctx, product.SKU)
+	if err == nil && existingProduct != nil {
+		return common.NewAppError(nil, "Product with this SKU already exists", http.StatusConflict)
+	}
+	err = s.repo.Create(ctx, product)
 	if err != nil {
 		return common.NewAppError(err, "Failed to create product", common.ErrInternalServer.Code)
 	}
@@ -30,7 +34,7 @@ func (s *ProductService) Create(ctx context.Context, product *domain.Product) *c
 func (s *ProductService) GetByID(ctx context.Context, id uint) (*domain.Product, *common.AppError) {
 	product, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, common.NewAppError(err, "Failed to get product", common.ErrInternalServer.Code)
+		return nil, common.NewAppError(err, "Product not found", http.StatusNotFound)
 	}
 	return product, nil
 }
@@ -46,6 +50,9 @@ func (s *ProductService) Update(ctx context.Context, product *domain.Product) *c
 
 // Delete deletes a product
 func (s *ProductService) Delete(ctx context.Context, id uint) *common.AppError {
+	if _, err := s.repo.GetByID(ctx, id); err != nil {
+		return common.NewAppError(err, "Product not found", http.StatusNotFound)
+	}
 	err := s.repo.Delete(ctx, id)
 	if err != nil {
 		return common.NewAppError(err, "Failed to delete product", common.ErrInternalServer.Code)

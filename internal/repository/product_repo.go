@@ -9,6 +9,7 @@ import (
 type ProductRepository interface {
 	Create(ctx context.Context, product *domain.Product) error
 	GetByID(ctx context.Context, id uint) (*domain.Product, error)
+	GetBySKU(ctx context.Context, sku string) (*domain.Product, error)
 	Update(ctx context.Context, product *domain.Product) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, filter domain.ProductFilter) ([]domain.Product, error)
@@ -25,6 +26,15 @@ func (p *productRepository) Create(ctx context.Context, product *domain.Product)
 func (p *productRepository) GetByID(ctx context.Context, id uint) (*domain.Product, error) {
 	product := &domain.Product{}
 	err := p.DB.WithContext(ctx).First(product, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return product, nil
+}
+
+func (p *productRepository) GetBySKU(ctx context.Context, sku string) (*domain.Product, error) {
+	product := &domain.Product{}
+	err := p.DB.WithContext(ctx).Where("sku = ?", sku).First(product).Error
 	if err != nil {
 		return nil, err
 	}

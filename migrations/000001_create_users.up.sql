@@ -1,4 +1,9 @@
-CREATE TYPE user_role AS ENUM ('user', 'admin');
+DO $$
+BEGIN
+    CREATE TYPE user_role AS ENUM ('user', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END$$;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,

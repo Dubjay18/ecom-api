@@ -7,17 +7,9 @@ type Product struct {
 	Price       float64     `json:"price" gorm:"type:decimal(10,2);not null"`
 	SKU         string      `json:"sku" gorm:"uniqueIndex;size:50;not null"`
 	Stock       int         `json:"stock" gorm:"not null"`
-	CategoryID  uint        `json:"category_id" gorm:"index"`
-	Category    Category    `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
+	Category    string      `json:"category" gorm:"type:varchar(100);"`
 	ImageURL    string      `json:"image_url" gorm:"size:255"`
 	OrderItems  []OrderItem `json:"-" gorm:"foreignKey:ProductID"`
-}
-
-type Category struct {
-	Base
-	Name        string    `json:"name" gorm:"size:100;not null"`
-	Description string    `json:"description" gorm:"type:text"`
-	Products    []Product `json:"products,omitempty" gorm:"foreignKey:CategoryID"`
 }
 
 type ProductFilter struct {
@@ -29,11 +21,19 @@ type ProductFilter struct {
 }
 
 type CreateProductRequest struct {
-	Name        string  `json:"name" binding:"required"`
-	Price       float64 `json:"price" binding:"required"`
+	Name        string  `form:"name" binding:"required"`
+	Price       float64 `form:"price" binding:"required,gt=0"`
 	Description string  `json:"description"`
-	SKU         string  `json:"sku" binding:"required"`
-	Stock       int     `json:"stock" binding:"required"`
-	CategoryID  uint    `json:"category_id" binding:"required"`
-	ImageURL    string  `json:"image_url"`
+	Stock       int     `form:"stock" binding:"required,gt=0"`
+	SKU         string  `form:"sku" binding:"required"`
+	Category    string  `form:"category"`
+}
+
+type UpdateProductRequest struct {
+	Name        string  `form:"name"`
+	Price       float64 `form:"price" binding:"gt=0"`
+	Description string  `json:"description"`
+	Stock       int     `form:"stock" binding:"gt=0"`
+	SKU         string  `form:"sku"`
+	Category    string  `form:"category"`
 }

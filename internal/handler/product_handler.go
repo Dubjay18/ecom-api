@@ -1,32 +1,43 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/Dubjay18/ecom-api/internal/config"
 	"github.com/Dubjay18/ecom-api/internal/domain"
 	"github.com/Dubjay18/ecom-api/internal/middleware"
 	"github.com/Dubjay18/ecom-api/internal/service"
 	"github.com/Dubjay18/ecom-api/pkg/common/response"
+	"github.com/Dubjay18/ecom-api/pkg/upload"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
 type ProductHandler struct {
-	r *gin.RouterGroup
-	s *service.ProductService
+	r      *gin.RouterGroup
+	s      *service.ProductService
+	logger *logrus.Logger
+	cf     config.APIKeysConfig
 }
 
-func NewProductHandler(r *gin.RouterGroup, s *service.ProductService) {
+func NewProductHandler(r *gin.RouterGroup, s *service.ProductService, logger *logrus.Logger, secretKey string, cfg config.APIKeysConfig) {
 	handler := &ProductHandler{
-		r: r,
-		s: s,
+		r:      r,
+		s:      s,
+		logger: logger,
+		cf:     cfg,
 	}
-	ar := r.Use(middleware.AdminMiddleware())
-	ar.GET("/products", handler.ListProducts)
-	ar.POST("/products", handler.CreateProduct)
-	ar.GET("/products/:id", handler.GetProduct)
-	ar.PUT("/products/:id", handler.UpdateProduct)
-	ar.DELETE("/products/:id", handler.DeleteProduct)
+	r.Use(middleware.AuthMiddleware(secretKey))
+	// ar := r.Use(middleware.AdminMiddleware())
+
+	r.GET("/products", handler.ListProducts)
+	r.POST("/products", handler.CreateProduct)
+	r.GET("/products/:id", handler.GetProduct)
+	r.PUT("/products/:id", handler.UpdateProduct)
+	r.DELETE("/products/:id", handler.DeleteProduct)
 }
 
 // Create Product godoc
@@ -40,30 +51,49 @@ func NewProductHandler(r *gin.RouterGroup, s *service.ProductService) {
 // @Failure 400 {object} response.Response
 // @Router /api/v1/products [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	form, err := c.MultipartForm()
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid form data", err.Error())
+	var req domain.CreateProductRequest
+
+	// Bind and validate form data
+	if err := c.ShouldBind(&req); err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.RenderBindingErrors(c, err.(validator.ValidationErrors))
+			return
+		}
+		response.Error(c, http.StatusBadRequest, "Invalid input", err.Error())
 		return
 	}
 
-	product := &domain.Product{
-		Name:       form.Value["name"][0],
-		Price:      parseFloat64(form.Value["price"][0]),
-		Stock:      parseInt(form.Value["stock"][0]),
-		SKU:        form.Value["sku"][0],
-		CategoryID: uint(parseInt(form.Value["category_id"][0])),
-	}
+	log.Println("Received form data:", req)
 
 	// Handle image file
 	file, err := c.FormFile("image")
-	if err == nil {
-		// If image is provided, process it
-		// You might want to implement proper file storage logic here
-		product.ImageURL = file.Filename
+	if err != nil {
+		h.logger.Error(err.Error())
+		response.Error(c, http.StatusBadRequest, "Image file is required", "image file is required")
+		return
 	}
 
+	// Save the uploaded file
+	imagePath, err := upload.UploadImage(c, file, h.cf.CloudinaryCloudName, h.cf.CloudinaryKey, h.cf.CloudinarySecret)
+	if err != nil {
+		h.logger.Error(err.Error())
+		response.Error(c, http.StatusBadRequest, "Failed to upload image", err.Error())
+		return
+	}
+	// Map form data and image path to the domain object
+	product := &domain.Product{
+		Name:     req.Name,
+		Price:    req.Price,
+		Stock:    req.Stock,
+		SKU:      req.SKU,
+		Category: req.Category,
+		ImageURL: imagePath, // Store the file path in the database
+	}
+
+	// Create the product using the service
 	perr := h.s.Create(c.Request.Context(), product)
 	if perr != nil {
+
 		response.Error(c, perr.Code, perr.Message, perr.Error())
 		return
 	}
@@ -127,54 +157,61 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "Invalid form data", err.Error())
+	var req domain.CreateProductRequest
+	if err := c.ShouldBind(&req); err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.RenderBindingErrors(c, err.(validator.ValidationErrors))
+			return
+		}
+		response.Error(c, http.StatusBadRequest, "Invalid input", err.Error())
 		return
 	}
-	product, perr := h.s.GetByID(c.Request.Context(), uint(id))
+
+	// Get existing product
+	existingProduct, perr := h.s.GetByID(c.Request.Context(), uint(id))
 	if perr != nil {
 		response.Error(c, perr.Code, perr.Message, perr.Error())
 		return
 	}
 
-	if form.Value["name"] != nil {
-		product.Name = form.Value["name"][0]
+	// Update basic fields
+	if req.Name != "" {
+		existingProduct.Name = req.Name
 	}
-	if form.Value["price"] != nil {
-		product.Price = parseFloat64(form.Value["price"][0])
+	if req.Price != 0 {
+		existingProduct.Price = req.Price
 	}
-	if form.Value["stock"] != nil {
-		product.Stock = parseInt(form.Value["stock"][0])
+	if req.Stock != 0 {
+		existingProduct.Stock = req.Stock
 	}
-	if form.Value["sku"] != nil {
-		product.SKU = form.Value["sku"][0]
+	if req.SKU != "" {
+		existingProduct.SKU = req.SKU
 	}
-	if form.Value["category_id"] != nil {
-		product.CategoryID = uint(parseInt(form.Value["category_id"][0]))
-	}
-	if form.Value["description"] != nil {
-		product.Description = form.Value["description"][0]
-	}
-	if form.Value["image_url"] != nil {
-		product.ImageURL = form.Value["image_url"][0]
+	if req.Category != "" {
+		existingProduct.Category = req.Category
 	}
 
-	// // Handle image file
-	// file, err := c.FormFile("image")
-	// if err == nil {
-	// 	// If image is provided, process it
-	// 	// You might want to implement proper file storage logic here
-	// 	product.ImageURL = file.Filename
-	// }
+	// Handle image file if provided
+	file, err := c.FormFile("image")
+	if err == nil {
+		// Save the uploaded file
+		imagePath, err := upload.UploadImage(c, file, h.cf.CloudinaryCloudName, h.cf.CloudinaryKey, h.cf.CloudinarySecret)
+		if err != nil {
+			h.logger.Error(err.Error())
+			response.Error(c, http.StatusBadRequest, "Failed to upload image", err.Error())
+			return
+		}
+		existingProduct.ImageURL = imagePath
+	}
 
-	perr = h.s.Update(c.Request.Context(), product)
+	// Update the product using the service
+	perr = h.s.Update(c.Request.Context(), existingProduct)
 	if perr != nil {
 		response.Error(c, perr.Code, perr.Message, perr.Error())
 		return
 	}
 
-	response.Success(c, http.StatusOK, "Product updated successfully", product)
+	response.Success(c, http.StatusOK, "Product updated successfully", existingProduct)
 }
 
 // Delete Product godoc
@@ -201,7 +238,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusNoContent, "Product deleted successfully", nil)
+	response.Success(c, http.StatusOK, "Product deleted successfully", nil)
 }
 
 // List Products godoc

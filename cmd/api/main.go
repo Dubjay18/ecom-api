@@ -77,7 +77,7 @@ func main() {
 
 	// Initialize handlers
 	handler.NewUserHandler(api, c.UserService, loggerInit, cfg.JWT.SecretKey)
-	handler.NewProductHandler(api, c.ProductService)
+	handler.NewProductHandler(api, c.ProductService, loggerInit, cfg.JWT.SecretKey, cfg.APIKeys)
 	handler.NewOrderHandler(api, c.OrderService)
 
 	// Swagger documentation route

@@ -52,8 +52,8 @@ type BaseConfig struct {
 	DB_MAX_LIFETIME          string `mapstructure:"DB_MAX_LIFETIME"`
 	MIGRATE                  bool   `mapstructure:"MIGRATE"`
 	CLOUDINARY_CLOUD_NAME    string `mapstructure:"CLOUDINARY_CLOUD_NAME"`
-	CLOUDINARY_API_KEY       string `mapstructure:"CLOUDINARY_API_KEY"`
-	CLOUDINARY_API_SECRET    string `mapstructure:"CLOUDINARY_API_SECRET"`
+	CLOUDINARY_KEY           string `mapstructure:"CLOUDINARY_KEY"`
+	CLOUDINARY_SECRET        string `mapstructure:"CLOUDINARY_SECRET"`
 	JWT_SECRET_KEY           string `mapstructure:"JWT_SECRET"`
 	JWT_ACCESS_TOKEN_EXPIRY  string `mapstructure:"JWT_ACCESS_TOKEN_EXPIRY"`
 	JWT_REFRESH_TOKEN_EXPIRY string `mapstructure:"JWT_REFRESH_TOKEN_EXPIRY"`
@@ -95,8 +95,10 @@ type JWTConfig struct {
 // }
 
 type APIKeysConfig struct {
-	StripeKey     string `mapstructure:"STRIPE_KEY"`
-	CloudinaryKey string `mapstructure:"CLOUDINARY_KEY"`
+	StripeKey           string `mapstructure:"STRIPE_KEY"`
+	CloudinaryKey       string `mapstructure:"CLOUDINARY_KEY"`
+	CloudinarySecret    string `mapstructure:"CLOUDINARY_SECRET"`
+	CloudinaryCloudName string `mapstructure:"CLOUDINARY_CLOUD_NAME"`
 }
 
 // LoadConfig reads configuration from environment variables or config file
@@ -147,6 +149,11 @@ func LoadConfig(path string) (*Config, error) {
 			SecretKey:          baseConfig.JWT_SECRET_KEY,
 			AccessTokenExpiry:  24 * time.Hour,
 			RefreshTokenExpiry: 7 * 24 * time.Hour,
+		},
+		APIKeys: APIKeysConfig{
+			CloudinaryKey:       baseConfig.CLOUDINARY_KEY,
+			CloudinarySecret:    baseConfig.CLOUDINARY_SECRET,
+			CloudinaryCloudName: baseConfig.CLOUDINARY_CLOUD_NAME,
 		},
 	}
 

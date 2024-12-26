@@ -1,5 +1,20 @@
-CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
-CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
+DO $$
+BEGIN
+    CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'type order_status already exists, skipping creation.';
+END;
+$$;
+
+DO $$
+BEGIN
+    CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'type payment_status already exists, skipping creation.';
+END;
+$$;
 
 CREATE TABLE addresses (
     id SERIAL PRIMARY KEY,
