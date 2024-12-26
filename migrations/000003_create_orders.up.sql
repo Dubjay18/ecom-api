@@ -37,7 +37,8 @@ CREATE TABLE orders (
     shipping_address_id INT REFERENCES addresses(id),
     payment_status payment_status DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    items JSONB NOT NULL
 );
 
 CREATE TABLE order_items (

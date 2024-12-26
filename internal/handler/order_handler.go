@@ -66,7 +66,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 // @Failure 401 {object} response.ErrorResponse
 // @Router /api/v1/orders [get]
 func (h *OrderHandler) GetUserOrders(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID, _ := c.Get("userID")
 	orders, err := h.s.ListUserOrders(c.Request.Context(), userID.(uint))
 	if err != nil {
 		response.Error(c, err.Code, "Failed to fetch orders", err.Message)

@@ -135,6 +135,9 @@ func (s *OrderService) CancelOrder(ctx context.Context, id uint) *common.AppErro
 
 // Update the status of an order (admin privilege)
 func (s *OrderService) UpdateOrderStatus(ctx context.Context, id uint, newStatus domain.OrderStatus) *common.AppError {
+	if newStatus != domain.StatusPending && newStatus != domain.StatusShipped && newStatus != domain.StatusDelivered {
+		return common.NewAppError(nil, "Invalid status", http.StatusBadRequest)
+	}
 	order, err := s.orderRepo.GetByID(ctx, id)
 	if err != nil {
 		return common.NewAppError(err, "Failed to get order", common.ErrInternalServer.Code)

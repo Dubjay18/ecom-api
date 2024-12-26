@@ -160,37 +160,6 @@ func LoadConfig(path string) (*Config, error) {
 	return config, nil
 }
 
-// setDefaults sets default values for configuration
-// func setDefaults(v *viper.Viper) {
-// 	// Server defaults
-// 	v.SetDefault("server.host", "0.0.0.0")
-// 	v.SetDefault("server.port", "8080")
-// 	v.SetDefault("server.mode", "development")
-// 	v.SetDefault("server.readTimeout", time.Second*5)
-// 	v.SetDefault("server.writeTimeout", time.Second*5)
-// 	v.SetDefault("server.shutdownTimeout", time.Second*5)
-
-// 	// Database defaults
-// 	v.SetDefault("db.host", "localhost")
-// 	v.SetDefault("db.port", "5432")
-// 	v.SetDefault("db.sslmode", "disable")
-// 	v.SetDefault("db.maxIdleConns", 10)
-// 	v.SetDefault("db.maxOpenConns", 100)
-// 	v.SetDefault("db.maxLifetime", time.Hour)
-// 	v.SetDefault("db.user", "postgres")
-// 	v.SetDefault("db.password", "postgres")
-// 	v.SetDefault("db.dbname", "ecommerce")
-
-// 	// Redis defaults
-// 	v.SetDefault("redis.host", "localhost")
-// 	v.SetDefault("redis.port", "6379")
-// 	v.SetDefault("redis.db", 0)
-
-// 	// JWT defaults
-// 	v.SetDefault("jwt.accessTokenExpiry", time.Hour*24)    // 24 hours
-// 	v.SetDefault("jwt.refreshTokenExpiry", time.Hour*24*7) // 7 days
-// }
-
 // GetDSN returns database connection string
 func (c *DBConfig) GetDSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
