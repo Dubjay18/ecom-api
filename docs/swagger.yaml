@@ -6,8 +6,6 @@ definitions:
         type: string
       country:
         type: string
-      created_at:
-        type: string
       id:
         type: integer
       is_default:
@@ -18,32 +16,80 @@ definitions:
         type: string
       street:
         type: string
-      updated_at:
-        type: string
       user_id:
         type: integer
+    required:
+    - city
+    - country
+    - postal_code
+    - state
+    - street
     type: object
-  domain.Category:
+  domain.CreatAddressRequest:
     properties:
-      created_at:
+      city:
         type: string
-      description:
+      country:
         type: string
-      id:
+      is_default:
+        type: boolean
+      postal_code:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+    required:
+    - city
+    - country
+    - postal_code
+    - state
+    - street
+    type: object
+  domain.CreateOrderItem:
+    properties:
+      product_id:
         type: integer
-      name:
-        type: string
-      products:
+      quantity:
+        type: integer
+    required:
+    - product_id
+    - quantity
+    type: object
+  domain.CreateOrderRequest:
+    properties:
+      items:
         items:
-          $ref: '#/definitions/domain.Product'
+          $ref: '#/definitions/domain.CreateOrderItem'
         type: array
-      updated_at:
+      payment_method:
         type: string
+      shipping_address:
+        $ref: '#/definitions/domain.CreatAddressRequest'
+    required:
+    - items
+    - payment_method
+    - shipping_address
+    type: object
+  domain.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  domain.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/domain.User'
     type: object
   domain.Order:
     properties:
-      created_at:
-        type: string
       id:
         type: integer
       items:
@@ -51,38 +97,28 @@ definitions:
           $ref: '#/definitions/domain.OrderItem'
         type: array
       payment_status:
-        $ref: '#/definitions/domain.PaymentStatus'
-      shipping_address:
-        $ref: '#/definitions/domain.Address'
+        allOf:
+        - $ref: '#/definitions/domain.PaymentStatus'
+        description: ShippingAddr   Address       `json:"address,omitempty" gorm:"foreignKey:ShippingAddrID"`
+      shipping_address_id:
+        type: integer
       status:
         $ref: '#/definitions/domain.OrderStatus'
       total_amount:
         type: number
-      updated_at:
-        type: string
-      user:
-        $ref: '#/definitions/domain.User'
       user_id:
         type: integer
     type: object
   domain.OrderItem:
     properties:
-      created_at:
-        type: string
       id:
-        type: integer
-      order_id:
         type: integer
       price:
         type: number
       product:
         $ref: '#/definitions/domain.Product'
-      product_id:
-        type: integer
       quantity:
         type: integer
-      updated_at:
-        type: string
     type: object
   domain.OrderStatus:
     enum:
@@ -113,10 +149,6 @@ definitions:
   domain.Product:
     properties:
       category:
-        $ref: '#/definitions/domain.Category'
-      category_id:
-        type: integer
-      created_at:
         type: string
       description:
         type: string
@@ -132,8 +164,6 @@ definitions:
         type: string
       stock:
         type: integer
-      updated_at:
-        type: string
     type: object
   domain.RegisterRequest:
     properties:
@@ -152,12 +182,10 @@ definitions:
     - last_name
     - password
     type: object
-  domain.RegisterResponse:
+  domain.UpdateOrderStatusRequest:
     properties:
-      token:
-        type: string
-      user:
-        $ref: '#/definitions/domain.User'
+      status:
+        $ref: '#/definitions/domain.OrderStatus'
     type: object
   domain.User:
     properties:
@@ -165,8 +193,6 @@ definitions:
         items:
           $ref: '#/definitions/domain.Address'
         type: array
-      created_at:
-        type: string
       email:
         type: string
       first_name:
@@ -181,8 +207,6 @@ definitions:
         type: array
       role:
         $ref: '#/definitions/domain.UserRole'
-      updated_at:
-        type: string
     type: object
   domain.UserRole:
     enum:
@@ -192,11 +216,19 @@ definitions:
     x-enum-varnames:
     - RoleUser
     - RoleAdmin
+  response.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      status:
+        type: integer
+    type: object
   response.Response:
     properties:
       data: {}
-      error:
-        type: string
+      error: {}
       message:
         type: string
       status:
@@ -209,7 +241,363 @@ info:
   title: E-commerce API
   version: "1.0"
 paths:
-  /api/v1/users/register:
+  /api/v1/orders:
+    get:
+      consumes:
+      - application/json
+      description: Get all orders for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Order'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all orders for a user
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Create a new order for authenticated user
+      parameters:
+      - description: Order details
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Place an order for one or more products
+      tags:
+      - orders
+  /api/v1/orders/:id:
+    delete:
+      consumes:
+      - application/json
+      description: Cancel an order if it is still pending
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel an order
+      tags:
+      - orders
+  /api/v1/orders/:id/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of an order (admin only)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New status
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update order status
+      tags:
+      - orders
+  /api/v1/products:
+    get:
+      consumes:
+      - application/json
+      description: Lists products with optional filtering
+      parameters:
+      - description: Product name
+        in: query
+        name: name
+        type: string
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Product'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: List products
+      tags:
+      - products
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new product using form data
+      parameters:
+      - description: Product name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Product price
+        in: formData
+        name: price
+        required: true
+        type: number
+      - description: Product stock
+        in: formData
+        name: stock
+        required: true
+        type: integer
+      - description: Product SKU
+        in: formData
+        name: sku
+        required: true
+        type: string
+      - description: Product category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: Product image
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Create a new product
+      tags:
+      - products
+  /api/v1/products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a product by ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Delete a product
+      tags:
+      - products
+    get:
+      consumes:
+      - application/json
+      description: Returns the product that matches the given ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get a product by ID
+      tags:
+      - products
+    put:
+      consumes:
+      - multipart/form-data
+      description: Updates a product by ID using form data
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product name
+        in: formData
+        name: name
+        type: string
+      - description: Product price
+        in: formData
+        name: price
+        type: number
+      - description: Product stock
+        in: formData
+        name: stock
+        type: integer
+      - description: Product SKU
+        in: formData
+        name: sku
+        type: string
+      - description: Product category
+        in: formData
+        name: category
+        type: string
+      - description: Product image
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Update a product
+      tags:
+      - products
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -227,7 +615,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.RegisterResponse'
+            $ref: '#/definitions/domain.User'
         "400":
           description: Bad Request
           schema:
@@ -236,7 +624,58 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/response.Response'
-      summary: Register a new user
+      summary: Register new user
+      tags:
+      - auth
+  /auth/register-admin:
+    post:
+      consumes:
+      - application/json
+      description: Register a new admin with email and password
+      parameters:
+      - description: Admin registration details
+        in: body
+        name: admin
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Register new admin
+      tags:
+      - auth
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Get authenticated user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
       tags:
       - users
 swagger: "2.0"

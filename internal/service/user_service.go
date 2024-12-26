@@ -27,6 +27,8 @@ type UserService interface {
 	GetByID(ctx context.Context, id uint) (*domain.User, *common.AppError)
 	// Update updates a user
 	Update(ctx context.Context, user *domain.User) (*domain.User, *common.AppError)
+	// RegisterAdmin creates a new admin user
+	RegisterAdmin(ctx context.Context, req domain.RegisterRequest) (*domain.User, *common.AppError)
 }
 
 type userService struct {
@@ -122,4 +124,38 @@ func NewUserService(repo repository.UserRepository, jwt *jwt.JWTService) UserSer
 	return &userService{repo: repo,
 		jwt: jwt,
 	}
+}
+func (s *userService) RegisterAdmin(ctx context.Context, req domain.RegisterRequest) (*domain.User, *common.AppError) {
+	// Check if user already exists
+	existing, err := s.repo.GetByEmail(ctx, req.Email)
+	if err == nil && existing != nil {
+		return nil, &common.ErrEmailExists
+	}
+
+	hashedPassword, err := util.HashPassword(req.Password)
+	if err != nil {
+		log.Printf("Failed to hash password: %v", err)
+		return nil, &common.AppError{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to hash password",
+		}
+	}
+	user := &domain.User{
+		Email:     req.Email,
+		Password:  hashedPassword,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Role:      domain.RoleAdmin,
+	}
+
+	resp, err := s.repo.Create(ctx, user)
+	if err != nil {
+		log.Printf("Failed to create user: %v", err)
+		return nil, &common.AppError{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to create user",
+		}
+	}
+
+	return resp, nil
 }

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/Dubjay18/ecom-api/internal/domain"
 	"github.com/Dubjay18/ecom-api/internal/middleware"
 	"github.com/Dubjay18/ecom-api/internal/service"
@@ -9,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type UserHandler struct {
@@ -29,6 +30,7 @@ func NewUserHandler(r *gin.RouterGroup, s service.UserService, logger *logrus.Lo
 	{
 		auth.POST("/register", handler.Register)
 		auth.POST("/login", handler.Login)
+		auth.POST("/register-admin", handler.RegisterAdmin)
 	}
 
 	users := r.Group("/users")
@@ -40,16 +42,16 @@ func NewUserHandler(r *gin.RouterGroup, s service.UserService, logger *logrus.Lo
 }
 
 // Register godoc
-// @Summary Register a new user
+// @Summary Register new user
 // @Description Register a new user with email and password
-// @Tags users
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param user body domain.RegisterRequest true "User registration details"
 // @Success 201 {object} domain.User
 // @Failure 400 {object} response.Response
 // @Failure 409 {object} response.Response
-// @Router /api/v1/users/register [post]
+// @Router /auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req domain.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -71,7 +73,6 @@ func (h *UserHandler) Register(c *gin.Context) {
 			response.Error(c, http.StatusInternalServerError, "Failed to register user", err.Error())
 		}
 		return
-
 	}
 	response.Success(c, http.StatusCreated, "User registered successfully", user)
 }
@@ -79,14 +80,14 @@ func (h *UserHandler) Register(c *gin.Context) {
 // Login godoc
 // @Summary Login user
 // @Description Authenticate user and return JWT token
-// @Tags users
+// @Tags auth
 // @Accept json
 // @Produce json
-// @Param credentials body LoginRequest true "Login credentials"
-// @Success 200 {object} LoginResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 401 {object} ErrorResponse
-// @Router /api/v1/users/login [post]
+// @Param credentials body domain.LoginRequest true "Login credentials"
+// @Success 200 {object} domain.LoginResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 401 {object} response.ErrorResponse
+// @Router /auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req domain.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -99,20 +100,19 @@ func (h *UserHandler) Login(c *gin.Context) {
 		response.Error(c, err.Code, "Invalid credentials", err.Error())
 		return
 	}
-
 	c.JSON(http.StatusOK, resp)
 }
 
 // GetProfile godoc
 // @Summary Get user profile
-// @Description Get authenticated user's profile
+// @Description Get authenticated user profile
 // @Tags users
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} User
-// @Failure 401 {object} ErrorResponse
-// @Router /api/v1/users/profile [get]
+// @Success 200 {object} domain.User
+// @Failure 401 {object} response.ErrorResponse
+// @Router /users/me [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID := c.GetUint("userID")
 	user, err := h.s.GetByID(c.Request.Context(), userID)
@@ -120,6 +120,41 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		response.Error(c, err.Code, err.Message, err.Error())
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
+}
+
+// RegisterAdmin godoc
+// @Summary Register new admin
+// @Description Register a new admin with email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param admin body domain.RegisterRequest true "Admin registration details"
+// @Success 201 {object} domain.User
+// @Failure 400 {object} response.Response
+// @Failure 409 {object} response.Response
+// @Router /auth/register-admin [post]
+func (h *UserHandler) RegisterAdmin(c *gin.Context) {
+	var req domain.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			response.RenderBindingErrors(c, err.(validator.ValidationErrors))
+			return
+		}
+		response.Error(c, http.StatusBadRequest, "Invalid input", err.Error())
+		return
+	}
+
+	user, err := h.s.RegisterAdmin(c.Request.Context(), req)
+	if err != nil {
+		h.logger.Error(err)
+		switch err {
+		case &common.ErrEmailExists:
+			response.Error(c, http.StatusConflict, "Registration failed", err.Error())
+		default:
+			response.Error(c, http.StatusInternalServerError, "Failed to register user", err.Error())
+		}
+		return
+	}
+	response.Success(c, http.StatusCreated, "User registered successfully", user)
 }

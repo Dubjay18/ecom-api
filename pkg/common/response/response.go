@@ -15,6 +15,12 @@ type Response struct {
 	Error   any         `json:"error,omitempty"`
 }
 
+type ErrorResponse struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+	Error   string `json:"error"`
+}
+
 func Success(c *gin.Context, status int, message string, data interface{}) {
 	c.JSON(status, Response{
 		Status:  status,

@@ -31,29 +31,33 @@ func NewProductHandler(r *gin.RouterGroup, s *service.ProductService, logger *lo
 		cf:     cfg,
 	}
 	r.Use(middleware.AuthMiddleware(secretKey))
-	// ar := r.Use(middleware.AdminMiddleware())
+	ar := r.Use(middleware.AdminMiddleware())
 
-	r.GET("/products", handler.ListProducts)
-	r.POST("/products", handler.CreateProduct)
-	r.GET("/products/:id", handler.GetProduct)
-	r.PUT("/products/:id", handler.UpdateProduct)
-	r.DELETE("/products/:id", handler.DeleteProduct)
+	ar.GET("/products", handler.ListProducts)
+	ar.POST("/products", handler.CreateProduct)
+	ar.GET("/products/:id", handler.GetProduct)
+	ar.PUT("/products/:id", handler.UpdateProduct)
+	ar.DELETE("/products/:id", handler.DeleteProduct)
 }
 
 // Create Product godoc
 // @Summary Create a new product
-// @Description Create a new product
+// @Description Create a new product using form data
 // @Tags products
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param product body domain.Product true "Product details"
+// @Param name formData string true "Product name"
+// @Param price formData number true "Product price"
+// @Param stock formData int true "Product stock"
+// @Param sku formData string true "Product SKU"
+// @Param category formData string true "Product category"
+// @Param image formData file true "Product image"
 // @Success 201 {object} domain.Product
 // @Failure 400 {object} response.Response
 // @Router /api/v1/products [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var req domain.CreateProductRequest
 
-	// Bind and validate form data
 	if err := c.ShouldBind(&req); err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
 			response.RenderBindingErrors(c, err.(validator.ValidationErrors))
@@ -65,7 +69,6 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	log.Println("Received form data:", req)
 
-	// Handle image file
 	file, err := c.FormFile("image")
 	if err != nil {
 		h.logger.Error(err.Error())
@@ -73,27 +76,24 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	// Save the uploaded file
 	imagePath, err := upload.UploadImage(c, file, h.cf.CloudinaryCloudName, h.cf.CloudinaryKey, h.cf.CloudinarySecret)
 	if err != nil {
 		h.logger.Error(err.Error())
 		response.Error(c, http.StatusBadRequest, "Failed to upload image", err.Error())
 		return
 	}
-	// Map form data and image path to the domain object
+
 	product := &domain.Product{
 		Name:     req.Name,
 		Price:    req.Price,
 		Stock:    req.Stock,
 		SKU:      req.SKU,
 		Category: req.Category,
-		ImageURL: imagePath, // Store the file path in the database
+		ImageURL: imagePath,
 	}
 
-	// Create the product using the service
 	perr := h.s.Create(c.Request.Context(), product)
 	if perr != nil {
-
 		response.Error(c, perr.Code, perr.Message, perr.Error())
 		return
 	}
@@ -101,19 +101,9 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "Product created successfully", product)
 }
 
-func parseFloat64(s string) float64 {
-	v, _ := strconv.ParseFloat(s, 64)
-	return v
-}
-
-func parseInt(s string) int {
-	v, _ := strconv.Atoi(s)
-	return v
-}
-
 // Get Product godoc
 // @Summary Get a product by ID
-// @Description Get a product by ID
+// @Description Returns the product that matches the given ID
 // @Tags products
 // @Accept json
 // @Produce json
@@ -140,12 +130,17 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 
 // Update Product godoc
 // @Summary Update a product
-// @Description Update a product
+// @Description Updates a product by ID using form data
 // @Tags products
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path int true "Product ID"
-// @Param product body domain.Product true "Product details"
+// @Param name formData string false "Product name"
+// @Param price formData number false "Product price"
+// @Param stock formData int false "Product stock"
+// @Param sku formData string false "Product SKU"
+// @Param category formData string false "Product category"
+// @Param image formData file false "Product image"
 // @Success 200 {object} domain.Product
 // @Failure 400 {object} response.Response
 // @Failure 404 {object} response.Response
@@ -167,14 +162,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Get existing product
 	existingProduct, perr := h.s.GetByID(c.Request.Context(), uint(id))
 	if perr != nil {
 		response.Error(c, perr.Code, perr.Message, perr.Error())
 		return
 	}
 
-	// Update basic fields
 	if req.Name != "" {
 		existingProduct.Name = req.Name
 	}
@@ -191,10 +184,8 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		existingProduct.Category = req.Category
 	}
 
-	// Handle image file if provided
 	file, err := c.FormFile("image")
 	if err == nil {
-		// Save the uploaded file
 		imagePath, err := upload.UploadImage(c, file, h.cf.CloudinaryCloudName, h.cf.CloudinaryKey, h.cf.CloudinarySecret)
 		if err != nil {
 			h.logger.Error(err.Error())
@@ -204,7 +195,6 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		existingProduct.ImageURL = imagePath
 	}
 
-	// Update the product using the service
 	perr = h.s.Update(c.Request.Context(), existingProduct)
 	if perr != nil {
 		response.Error(c, perr.Code, perr.Message, perr.Error())
@@ -216,12 +206,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 // Delete Product godoc
 // @Summary Delete a product
-// @Description Delete a product
+// @Description Deletes a product by ID
 // @Tags products
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID"
-// @Success 204
+// @Success 200 {object} response.Response
 // @Failure 400 {object} response.Response
 // @Failure 404 {object} response.Response
 // @Router /api/v1/products/{id} [delete]
@@ -243,14 +233,14 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 // List Products godoc
 // @Summary List products
-// @Description List products
+// @Description Lists products with optional filtering
 // @Tags products
 // @Accept json
 // @Produce json
 // @Param name query string false "Product name"
 // @Param min_price query number false "Minimum price"
 // @Param max_price query number false "Maximum price"
-// @Success 200 {object} []domain.Product
+// @Success 200 {array} domain.Product
 // @Failure 400 {object} response.Response
 // @Router /api/v1/products [get]
 func (h *ProductHandler) ListProducts(c *gin.Context) {
@@ -266,4 +256,14 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Products retrieved successfully", products)
+}
+
+func parseFloat64(s string) float64 {
+	v, _ := strconv.ParseFloat(s, 64)
+	return v
+}
+
+func parseInt(s string) int {
+	v, _ := strconv.Atoi(s)
+	return v
 }

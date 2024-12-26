@@ -17,11 +17,12 @@ type OrderHandler struct {
 	s *service.OrderService
 }
 
-func NewOrderHandler(r *gin.RouterGroup, s *service.OrderService) *OrderHandler {
+func NewOrderHandler(r *gin.RouterGroup, s *service.OrderService, secretKey string) *OrderHandler {
 	handler := &OrderHandler{
 		r: r,
 		s: s,
 	}
+	r.Use(middleware.AuthMiddleware(secretKey))
 	handler.RegisterRoutes()
 	return handler
 }
@@ -84,7 +85,7 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Order ID"
-// @Success 200 {object} response.SuccessResponse
+// @Success 200 {object} response.Response
 // @Failure 400 {object} response.ErrorResponse
 // @Failure 401 {object} response.ErrorResponse
 // @Failure 404 {object} response.ErrorResponse
@@ -153,9 +154,4 @@ func (h *OrderHandler) RegisterRoutes() {
 	adminRoutes := h.r.Group("/")
 	adminRoutes.Use(middleware.AdminMiddleware())
 	adminRoutes.PUT("/orders/:id/status", h.UpdateOrderStatus)
-}
-
-// SuccessResponse godoc
-type SuccessResponse struct {
-	Message string `json:"message"`
 }
