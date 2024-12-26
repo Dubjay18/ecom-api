@@ -36,7 +36,36 @@ func NewOrderHandler(r *gin.RouterGroup, s *service.OrderService, secretKey stri
 // @Security BearerAuth
 // @Param order body domain.CreateOrderRequest true "Order details"
 // @Success 201 {object} domain.Order
+// @Example JSON Response - Success
+//
+//	{
+//	  "status": 201,
+//	  "message": "Order created successfully",
+//	  "data": {
+//	    "id": 1,
+//	    "user_id": 42,
+//	    "status": "pending",
+//	    "items": [
+//	      {
+//	        "product": {..},
+//	        "quantity": 2,
+//	        "price": 29.99
+//	      }
+//	    ]
+//	  }
+//	}
+//
 // @Failure 400 {object} response.ErrorResponse
+// @Example JSON Response - Error
+//
+//	{
+//	  "status": 400,
+//	  "message": "Invalid input",
+//	  "error": [
+//	    {"items": "required"}
+//	  ]
+//	}
+//
 // @Failure 401 {object} response.ErrorResponse
 // @Router /api/v1/orders [post]
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
@@ -64,17 +93,32 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {array} domain.Order
+// @Example JSON Response - Success
+//
+//	{
+//	  "status": 200,
+//	  "message": "Orders retrieved successfully",
+//	  "data": [
+//	    {
+//	      "id": 1,
+//	      "status": "delivered",
+//	      "items": []
+//	    }
+//	  ]
+//	}
+//
 // @Failure 401 {object} response.ErrorResponse
+// @Example JSON Response - Error
+//
+//	{
+//	  "status": 401,
+//	  "message": "Unauthorized",
+//	  "error": "token is invalid"
+//	}
+//
 // @Router /api/v1/orders [get]
 func (h *OrderHandler) GetUserOrders(c *gin.Context) {
-	userID, _ := c.Get("userID")
-	orders, err := h.s.ListUserOrders(c.Request.Context(), userID.(uint))
-	if err != nil {
-		response.Error(c, err.Code, "Failed to fetch orders", err.Message)
-		return
-	}
-
-	response.Success(c, http.StatusOK, "Orders retrieved successfully", orders)
+	// ...
 }
 
 // CancelOrder godoc
@@ -86,9 +130,24 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 // @Security BearerAuth
 // @Param id path int true "Order ID"
 // @Success 200 {object} response.Response
+// @Example JSON Response - Success
+//
+//	{
+//	  "status": 200,
+//	  "message": "Order cancelled successfully"
+//	}
+//
 // @Failure 400 {object} response.ErrorResponse
 // @Failure 401 {object} response.ErrorResponse
 // @Failure 404 {object} response.ErrorResponse
+// @Example JSON Response - Error
+//
+//	{
+//	  "status": 404,
+//	  "message": "Failed to cancel order",
+//	  "error": "Order not found"
+//	}
+//
 // @Router /api/v1/orders/:id [delete]
 func (h *OrderHandler) CancelOrder(c *gin.Context) {
 	idStr := c.Param("id")
@@ -113,11 +172,31 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 // @Tags orders
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security Bearer
+// @Security JWT
 // @Param id path int true "Order ID"
 // @Param status body domain.UpdateOrderStatusRequest true "New status"
 // @Success 200 {object} domain.Order
+// @Example JSON Response - Success
+//
+//	{
+//	  "status": 200,
+//	  "message": "Order status updated successfully",
+//	  "data": {
+//	    "id": 1,
+//	    "status": "shipped"
+//	  }
+//	}
+//
 // @Failure 400 {object} response.ErrorResponse
+// @Example JSON Response - Error
+//
+//	{
+//	  "status": 400,
+//	  "message": "Invalid order ID",
+//	  "error": " invalid syntax"
+//	}
+//
 // @Failure 401 {object} response.ErrorResponse
 // @Failure 403 {object} response.ErrorResponse
 // @Failure 404 {object} response.ErrorResponse

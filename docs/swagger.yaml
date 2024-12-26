@@ -371,7 +371,8 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
+      - JWT: []
       summary: Update order status
       tags:
       - orders
@@ -406,6 +407,9 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      - JWT: []
       summary: List products
       tags:
       - products
@@ -455,6 +459,9 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      - JWT: []
       summary: Create a new product
       tags:
       - products
@@ -484,6 +491,9 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      - JWT: []
       summary: Delete a product
       tags:
       - products
@@ -512,6 +522,9 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      - JWT: []
       summary: Get a product by ID
       tags:
       - products
@@ -564,6 +577,9 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - Bearer: []
+      - JWT: []
       summary: Update a product
       tags:
       - products
@@ -678,4 +694,10 @@ paths:
       summary: Get user profile
       tags:
       - users
+securityDefinitions:
+  JWT:
+    description: Type "Bearer" followed by JWT token
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

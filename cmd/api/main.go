@@ -27,6 +27,10 @@ import (
 // @description     A RESTful API for an e-commerce application
 // @host           localhost:8080
 // @BasePath       /api/v1
+// @securityDefinitions.apikey JWT
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by JWT token
 
 func main() {
 	// Initialize logger

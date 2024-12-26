@@ -160,7 +160,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
                     }
                 ],
                 "description": "Update the status of an order (admin only)",
@@ -228,6 +231,14 @@ const docTemplate = `{
         },
         "/api/v1/products": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
+                    }
+                ],
                 "description": "Lists products with optional filtering",
                 "consumes": [
                     "application/json"
@@ -278,6 +289,14 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
+                    }
+                ],
                 "description": "Create a new product using form data",
                 "consumes": [
                     "multipart/form-data"
@@ -351,6 +370,14 @@ const docTemplate = `{
         },
         "/api/v1/products/{id}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
+                    }
+                ],
                 "description": "Returns the product that matches the given ID",
                 "consumes": [
                     "application/json"
@@ -393,6 +420,14 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
+                    }
+                ],
                 "description": "Updates a product by ID using form data",
                 "consumes": [
                     "multipart/form-data"
@@ -471,6 +506,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "JWT": []
+                    }
+                ],
                 "description": "Deletes a product by ID",
                 "consumes": [
                     "application/json"
@@ -1030,6 +1073,14 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "JWT": {
+            "description": "Type \"Bearer\" followed by JWT token",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
@@ -1043,7 +1094,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "A RESTful API for an e-commerce application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-
 }
 
 func init() {

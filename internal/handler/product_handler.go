@@ -46,6 +46,8 @@ func NewProductHandler(r *gin.RouterGroup, s *service.ProductService, logger *lo
 // @Tags products
 // @Accept multipart/form-data
 // @Produce json
+// @Security Bearer
+// @Security JWT
 // @Param name formData string true "Product name"
 // @Param price formData number true "Product price"
 // @Param stock formData int true "Product stock"
@@ -107,6 +109,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 // @Tags products
 // @Accept json
 // @Produce json
+// @Security Bearer
+// @Security JWT
 // @Param id path int true "Product ID"
 // @Success 200 {object} domain.Product
 // @Failure 400 {object} response.Response
@@ -133,6 +137,8 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 // @Description Updates a product by ID using form data
 // @Tags products
 // @Accept multipart/form-data
+// @Security Bearer
+// @Security JWT
 // @Produce json
 // @Param id path int true "Product ID"
 // @Param name formData string false "Product name"
@@ -208,6 +214,8 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 // @Summary Delete a product
 // @Description Deletes a product by ID
 // @Tags products
+// @Security Bearer
+// @Security JWT
 // @Accept json
 // @Produce json
 // @Param id path int true "Product ID"
@@ -235,6 +243,8 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 // @Summary List products
 // @Description Lists products with optional filtering
 // @Tags products
+// @Security Bearer
+// @Security JWT
 // @Accept json
 // @Produce json
 // @Param name query string false "Product name"

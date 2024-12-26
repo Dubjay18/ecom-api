@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Dubjay18/ecom-api/pkg/common/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -18,14 +19,14 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header is required"})
+			response.Error(c, http.StatusUnauthorized, "Authorization header required", nil)
 			return
 		}
 
 		// Check if the header has the Bearer prefix
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+			response.Error(c, http.StatusUnauthorized, "invalid authorization header format", nil)
 			return
 		}
 
@@ -40,10 +41,10 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 
 		if err != nil {
 			if errors.Is(err, jwt.ErrTokenExpired) {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has expired"})
+				response.Error(c, http.StatusUnauthorized, "token has expired", nil)
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			response.Error(c, http.StatusUnauthorized, "invalid  token", nil)
 			return
 		}
 
@@ -53,24 +54,25 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 			if userID, ok := claims["user_id"]; ok && userID != nil {
 				c.Set("userID", uint(userID.(float64)))
 			} else {
+				response.Error(c, http.StatusUnauthorized, "invalid  token", nil)
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id in token"})
 				return
 			}
 			if isAdmin, ok := claims["is_admin"]; ok && isAdmin != nil {
 				c.Set("isAdmin", isAdmin.(bool))
 			} else {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid is_admin in token"})
+				response.Error(c, http.StatusUnauthorized, "invalid  token", nil)
 				return
 			}
 			if email, ok := claims["email"]; ok && email != nil {
 				c.Set("email", email.(string))
 			} else {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid email in token"})
+				response.Error(c, http.StatusUnauthorized, "invalid token", nil)
 				return
 			}
 			c.Next()
 		} else {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
+			response.Error(c, http.StatusUnauthorized, "invalid token", nil)
 			return
 		}
 	}
