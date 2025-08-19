@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Server Configuration
+      - SERVER_HOST=0.0.0.0
+      - PORT=8080
+      - SERVER_MODE=release
+      - SERVER_READ_TIMEOUT=30s
+      - SERVER_WRITE_TIMEOUT=30s
+      - SERVER_SHUTDOWN_TIMEOUT=5s
+      
+      # Database Configuration
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=ecom_api
+      - DB_SSL_MODE=disable
+      - DB_MAX_IDLE_CONNS=25
+      - DB_MAX_OPEN_CONNS=100
+      - DB_MAX_LIFETIME=1h
+      
+      # JWT Configuration
+      - JWT_SECRET_KEY=your-super-secret-jwt-key-for-development-only
+      - JWT_ACCESS_TOKEN_EXPIRY=24h
+      - JWT_REFRESH_TOKEN_EXPIRY=168h
+      
+      # Optional: Cloudinary (for image uploads)
+      # - CLOUDINARY_CLOUD_NAME=your_cloud_name
+      # - CLOUDINARY_KEY=your_api_key
+      # - CLOUDINARY_SECRET=your_api_secret
+      
+      # Optional: Stripe (for payments)
+      # - STRIPE_KEY=your_stripe_key
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ecom-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ecom_api
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecom_api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ecom-network
+
+  # Redis (Optional - for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - ecom-network
+    profiles:
+      - redis
+
+  # Adminer (Database Management Tool)
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - ecom-network
+    profiles:
+      - adminer
+
+  # Nginx (Optional - for reverse proxy)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployments/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./deployments/nginx/conf.d:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - ecom-network
+    profiles:
+      - nginx
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ecom-network:
+    driver: bridge
