@@ -143,8 +143,7 @@ func main() {
 | $$  | $$|  $$$$$$$| $$  | $$|  $$$$$$$       
 |__/  |__/ \_______/|__/  |__/ \_______/      
 
- WELCOME TO JAY'S SERVER!
-`)
+ WELCOME TO JAY'S SERVER!`)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal("cannot start server:", err)
 	}
