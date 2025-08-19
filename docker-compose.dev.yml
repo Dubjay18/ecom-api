@@ -1,0 +1,35 @@
+# Additional development docker-compose file
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  # API Service for Development
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/bin  # Exclude binary from volume
+    environment:
+      - SERVER_MODE=debug
+      - LOG_LEVEL=debug
+    command: ["air", "-c", ".air.toml"]
+    profiles:
+      - dev
+
+  # Development Database with exposed port
+  db:
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    environment:
+      - POSTGRES_DB=ecom_api_dev
+    
+  # Enable Adminer for development
+  adminer:
+    profiles: []  # Always enabled in dev
+
+  # Enable Redis for development
+  redis:
+    profiles: []  # Always enabled in dev
